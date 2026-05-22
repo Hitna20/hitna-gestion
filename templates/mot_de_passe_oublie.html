@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mot de passe oublié - HITNA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.jpg') }}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .reset-container {
+            max-width: 450px;
+            width: 90%;
+            margin: 20px auto;
+        }
+        .reset-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .reset-card img {
+            height: 70px;
+            margin-bottom: 20px;
+        }
+        .reset-card h1 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .reset-card p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+        .reset-card input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .reset-card input:focus {
+            outline: none;
+            border-color: #2a5298;
+        }
+        .reset-card button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .reset-card button:hover {
+            transform: translateY(-2px);
+        }
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            color: #2a5298;
+            text-decoration: none;
+        }
+        .flash-message {
+            background: #dc3545;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .info-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="reset-container">
+        <div class="reset-card">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="HITNA" onerror="this.style.display='none'">
+            <h1>🏪 HITNA</h1>
+            <p>Réinitialisation du mot de passe</p>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="post">
+                <input type="email" name="email" placeholder="Email (votre_nom@hitna.com ou hitnasuperette@gmail.com)" required>
+                <button type="submit">📧 Envoyer le lien de réinitialisation</button>
+            </form>
+            
+            <a href="/login" class="back-link">← Retour à la connexion</a>
+            <p class="info-text">
+                Un lien de réinitialisation vous sera envoyé par email.<br>
+                Vérifiez vos spams si vous ne recevez rien.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

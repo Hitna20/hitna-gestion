@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des acteurs - HITNA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+    .status-inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .permission-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 15px;
+        font-size: 10px;
+        font-weight: bold;
+        margin: 2px;
+    }
+    .perm-vente {
+        background: #17a2b8;
+        color: white;
+    }
+    .perm-entrees {
+        background: #28a745;
+        color: white;
+    }
+    .perm-all {
+        background: #ffc107;
+        color: #333;
+    }
+    .btn-small {
+        padding: 5px 8px;
+        font-size: 11px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10001;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+    }
+    .checkbox-group {
+        text-align: left;
+        margin: 15px 0;
+    }
+    .checkbox-group label {
+        display: block;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+    .password-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        margin: 15px 0;
+        font-size: 14px;
+    }
+    .password-input:focus {
+        outline: none;
+        border-color: #2a5298;
+    }
+    .error-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+    .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #28a745;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .role-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    .role-badge-admin {
+        background: #ffc107;
+        color: #333;
+    }
+    .role-badge-employe {
+        background: #17a2b8;
+        color: white;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+    .table-container {
+        overflow-x: auto;
+    }
+    .table {
+        min-width: 800px;
+    }
+    @media (max-width: 768px) {
+        .table-container {
+            overflow-x: auto;
+        }
+        .action-buttons {
+            flex-direction: column;
+        }
+        .btn-small {
+            text-align: center;
+            margin: 2px 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block page_title %}👥 Gestion des acteurs{% endblock %}
+{% block page_subtitle %}Ajouter, modifier et gérer les permissions{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">➕ Ajouter un nouvel acteur</h2>
+    
+    <form method="post" action="/admin/acteurs/ajouter" style="background: #f8f9fa; padding: 20px; border-radius: 15px;">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="flex: 2; min-width: 150px;">
+                <label style="display: block; font-size: 12px; margin-bottom: 5px; color: #666;">Nom / Surnom</label>
+                <input type="text" name="nom" placeholder="Nom de l'acteur" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+            </div>
+            <div style="flex: 1; min-width: 130px;">
+                <label style="display: block; font-size: 12px; margin-bottom: 5px; color: #666;">Rôle de base</label>
+                <select name="role_base" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <option value="employe">👤 Employé (base)</option>
+                    <option value="admin">👑 Administrateur (base)</option>
+                </select>
+            </div>
+            <div style="flex: 2; min-width: 150px;">
+                <label style="display: block; font-size: 12px; margin-bottom: 5px; color: #666;">Rôle personnalisé (optionnel)</label>
+                <input type="text" name="role_personnalise" placeholder="Ex: Superviseur, Manager, Caissier..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+            </div>
+            <div style="flex: 1; min-width: 130px;">
+                <label style="display: block; font-size: 12px; margin-bottom: 5px; color: #666;">Mot de passe</label>
+                <input type="text" name="mot_de_passe" placeholder="Mot de passe" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+                <button type="submit" style="background: #28a745; padding: 10px 25px;">➕ Ajouter</button>
+            </div>
+        </div>
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">
+            ℹ️ Le rôle personnalisé remplace l'affichage standard.
+        </p>
+    </form>
+</div>
+
+<div class="card">
+    <h2 class="card-title">📋 Liste des acteurs</h2>
+    
+    {% if acteurs %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Rôle affiché</th>
+                    <th>Statut</th>
+                    <th>Permissions</th>
+                    <th>Motif</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in acteurs %}
+                <tr style="{% if a[0] == session.user_id %}background: #e8f4fd;{% endif %}{% if a[5] == 0 %}opacity: 0.8; background: #fff3cd;{% endif %}">
+                    <td style="vertical-align: middle;">
+                        {{ a[0] }}
+                        {% if a[0] == session.user_id %}
+                            <span style="font-size: 10px; background: #2a5298; color: white; padding: 2px 6px; border-radius: 10px;">Vous</span>
+                        {% endif %}
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <form method="post" action="/admin/acteurs/modifier/{{ a[0] }}" style="display: flex; gap: 10px;">
+                            <input type="text" name="nom" value="{{ a[1] }}" style="padding: 5px; width: 120px;">
+                            <input type="hidden" name="role" value="{{ a[2] }}">
+                            <button type="submit" class="btn-small" style="background:#ffc107;">✏️ Modifier</button>
+                        </form>
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                            <span class="role-badge role-badge-{{ a[2] }}">
+                                {% if a[3] %}
+                                    🏷️ {{ a[3] }}
+                                {% else %}
+                                    {% if a[2] == 'admin' %}👑 Administrateur{% else %}👤 Employé{% endif %}
+                                {% endif %}
+                            </span>
+                            <form method="post" action="/admin/acteurs/modifier_role/{{ a[0] }}" style="display: flex; gap: 5px;">
+                                <input type="text" name="role_personnalise" value="{{ a[3] }}" placeholder="Rôle personnalisé" style="padding: 4px 8px; font-size: 11px; width: 120px;">
+                                <button type="submit" class="btn-small" style="background:#17a2b8;">💾</button>
+                            </form>
+                        </div>
+                    </td>
+                    <td style="vertical-align: middle;">
+                        {% if a[5] == 1 %}
+                            <span class="status-badge status-active">✅ Actif</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">⭕ Désactivé</span>
+                        {% endif %}
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            {% set perms = a[7].split(',') if a[7] else ['vente'] %}
+                            {% if 'vente' in perms %}<span class="permission-badge perm-vente">🛒 Vente</span>{% endif %}
+                            {% if 'entrees' in perms %}<span class="permission-badge perm-entrees">📥 Entrées</span>{% endif %}
+                            {% if a[2] == 'admin' %}<span class="permission-badge perm-all">👑 Admin (total)</span>{% endif %}
+                            
+                            {% if a[2] != 'admin' and a[0] != session.user_id %}
+                            <button onclick="openPermModal({{ a[0] }}, '{{ a[1] }}', '{{ a[7] }}')" class="btn-small" style="background:#17a2b8; color:white;">🔧 Permissions</button>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="vertical-align: middle;">
+                        {% if a[6] %}
+                            <span title="{{ a[6] }}" style="cursor: help;">📝 {{ a[6][:20] }}{% if a[6]|length > 20 %}...{% endif %}</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div class="action-buttons">
+                            {% if a[0] != session.user_id %}
+                                {% if a[5] == 1 %}
+                                    <button onclick="openDesactiverModal({{ a[0] }}, '{{ a[1] }}')" class="btn-small" style="background:#ffc107;">🚫 Désactiver</button>
+                                {% else %}
+                                    <a href="/admin/acteurs/reactiver/{{ a[0] }}" class="btn-small" style="background:#28a745; color:white;">✅ Réactiver</a>
+                                {% endif %}
+                                <a href="/admin/acteurs/supprimer/{{ a[0] }}" onclick="return confirm('Supprimer définitivement ?')" class="btn-small" style="background:#dc3545; color:white;">🗑️ Supprimer</a>
+                            {% else %}
+                                <span style="color:#999;">—</span>
+                            {% endif %}
+                        </div>
+                    </tr>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #999;">Aucun acteur enregistré</p>
+    {% endif %}
+</div>
+
+<div class="nav-links">
+    <a href="/dashboard">← Retour au Dashboard</a>
+</div>
+
+<!-- Modal de vérification du mot de passe admin -->
+<div id="verifyPasswordModal" class="modal">
+    <div class="modal-content">
+        <h3>🔐 Vérification administrateur</h3>
+        <p style="margin-bottom: 15px; color: #666;">Pour modifier les permissions, veuillez entrer votre mot de passe.</p>
+        <input type="password" id="adminPassword" class="password-input" placeholder="Votre mot de passe" autocomplete="off">
+        <div id="passwordError" class="error-message">❌ Mot de passe incorrect</div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="verifyPasswordBtn" style="background: #28a745;">✅ Vérifier</button>
+            <button onclick="closeVerifyModal()" style="background: #6c757d;">❌ Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Permissions -->
+<div id="permModal" class="modal">
+    <div class="modal-content">
+        <h3>🔧 Gérer les permissions</h3>
+        <p id="permNom" style="margin-bottom: 15px;"></p>
+        <form id="permForm" method="post">
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="permissions" value="vente" checked disabled>
+                    🛒 Vente (obligatoire)
+                </label>
+                <label>
+                    <input type="checkbox" name="permissions" value="entrees" id="permEntrees">
+                    📥 Entrées de stock
+                </label>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" style="background: #28a745;">✅ Enregistrer</button>
+                <button type="button" onclick="closePermModal()" style="background: #6c757d;">❌ Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Désactivation -->
+<div id="desactiverModal" class="modal">
+    <div class="modal-content">
+        <h3>🚫 Désactiver le compte</h3>
+        <p id="desactiverNom"></p>
+        <form id="desactiverForm" method="post">
+            <select name="motif" required style="width:100%; padding:10px; margin:10px 0;">
+                <option value="">-- Motif --</option>
+                <option value="Congé annuel">🏖️ Congé annuel</option>
+                <option value="Congé maladie">🤒 Congé maladie</option>
+                <option value="Formation">📚 Formation</option>
+                <option value="Autre">📝 Autre</option>
+            </select>
+            <input type="text" name="motif_autre" placeholder="Précisez..." style="display:none; width:100%; padding:8px;">
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" style="background:#dc3545;">✅ Confirmer</button>
+                <button type="button" onclick="closeDesactiverModal()" style="background:#6c757d;">❌ Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<input type="hidden" id="currentPermsTemp" value="">
+<input type="hidden" id="permNomTemp" value="">
+
+<script>
+    let pendingPermActeurId = null;
+    let pendingPermActeurNom = null;
+    
+    function openPermModal(id, nom, currentPerms) {
+        pendingPermActeurId = id;
+        pendingPermActeurNom = nom;
+        document.getElementById('permNomTemp').innerHTML = `Acteur : <strong>${nom}</strong>`;
+        document.getElementById('currentPermsTemp').value = currentPerms;
+        document.getElementById('verifyPasswordModal').style.display = 'flex';
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('passwordError').style.display = 'none';
+    }
+    
+    function closeVerifyModal() {
+        document.getElementById('verifyPasswordModal').style.display = 'none';
+        pendingPermActeurId = null;
+    }
+    
+    // Vérification du mot de passe
+    document.getElementById('verifyPasswordBtn').addEventListener('click', function() {
+        const password = document.getElementById('adminPassword').value;
+        const btn = this;
+        const originalText = btn.innerHTML;
+        
+        if (!password) {
+            document.getElementById('passwordError').style.display = 'block';
+            document.getElementById('passwordError').innerText = 'Veuillez entrer votre mot de passe';
+            return;
+        }
+        
+        btn.disabled = true;
+        btn.innerHTML = 'Vérification... <span class="loading"></span>';
+        
+        fetch('/admin/acteurs/verifier_mdp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ mot_de_passe: password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('verifyPasswordModal').style.display = 'none';
+                
+                document.getElementById('permNom').innerHTML = `Acteur : <strong>${pendingPermActeurNom}</strong>`;
+                document.getElementById('permForm').action = `/admin/acteurs/permissions/${pendingPermActeurId}`;
+                
+                const currentPerms = document.getElementById('currentPermsTemp').value;
+                const perms = currentPerms ? currentPerms.split(',') : ['vente'];
+                document.getElementById('permEntrees').checked = perms.includes('entrees');
+                
+                document.getElementById('permModal').style.display = 'flex';
+                pendingPermActeurId = null;
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+                document.getElementById('passwordError').innerText = data.message || 'Mot de passe incorrect';
+            }
+        })
+        .catch(error => {
+            document.getElementById('passwordError').style.display = 'block';
+            document.getElementById('passwordError').innerText = 'Erreur de connexion';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    });
+    
+    function closePermModal() {
+        document.getElementById('permModal').style.display = 'none';
+    }
+    
+    function openDesactiverModal(id, nom) {
+        document.getElementById('desactiverNom').innerHTML = `Acteur : <strong>${nom}</strong>`;
+        document.getElementById('desactiverForm').action = `/admin/acteurs/desactiver/${id}`;
+        document.getElementById('desactiverModal').style.display = 'flex';
+    }
+    
+    function closeDesactiverModal() {
+        document.getElementById('desactiverModal').style.display = 'none';
+    }
+    
+    document.querySelector('select[name="motif"]')?.addEventListener('change', function() {
+        const autreInput = document.querySelector('input[name="motif_autre"]');
+        if (this.value === 'Autre') {
+            autreInput.style.display = 'block';
+            autreInput.required = true;
+        } else {
+            autreInput.style.display = 'none';
+            autreInput.required = false;
+        }
+    });
+    
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

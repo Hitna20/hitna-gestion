@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - HITNA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.jpg') }}">
+    <style>
+        .login-container {
+            max-width: 450px;
+            margin: 100px auto;
+        }
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .login-card img {
+            height: 80px;
+            margin-bottom: 20px;
+        }
+        .login-card h1 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+        }
+        .login-card p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .login-card input,
+        .login-card select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .login-card input:focus,
+        .login-card select:focus {
+            outline: none;
+            border-color: #2a5298;
+        }
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .login-card button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .flash-message {
+            background: #dc3545;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .role-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+    <div class="login-container">
+        <div class="login-card">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}" 
+                 alt="Hitna" 
+                 onerror="this.style.display='none'">
+            <h1>🏪 HITNA</h1>
+            <p>Système de gestion de produits</p>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="post">
+                <select name="role" required>
+                    <option value="">-- Sélectionnez votre rôle --</option>
+                    {% for role in roles %}
+                        <option value="{{ role.role_affiche }}">
+                            {% if role.role_base == 'admin' %}
+                                👑 {{ role.role_affiche }}
+                            {% else %}
+                                👤 {{ role.role_affiche }}
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <input type="password" name="password" placeholder="Mot de passe" required>
+                <button type="submit">🔓 Se connecter</button>
+            </form>
+            <p style="margin-top: 15px;">
+                <a href="/mot_de_passe_oublie" style="color: #2a5298; text-decoration: none; font-size: 14px;">🔑 Mot de passe oublié ?</a>
+            </p>
+            
+            <p style="font-size: 12px; color: #999; margin-top: 20px;">
+                Contactez l'administrateur si vous n'avez pas de compte
+            </p>
+        </div>
+    </div>
+</body>
+</html>
