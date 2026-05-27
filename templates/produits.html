@@ -2,139 +2,77 @@
 
 {% block title %}Gestion produits - HITNA{% endblock %}
 
-{% block extra_css %}
-<style>
-    .add-form {
-        background: white;
-        padding: 25px;
-        border-radius: 15px;
-        margin-bottom: 30px;
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    .add-form input {
-        flex: 1;
-        min-width: 150px;
-        padding: 12px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-    }
-    .add-form button {
-        padding: 12px 25px;
-    }
-    .product-item {
-        background: #f8f9fa;
-        margin: 15px 0;
-        padding: 20px;
-        border-radius: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-        transition: all 0.3s;
-    }
-    .product-item:hover {
-        background: #e9ecef;
-        transform: translateX(5px);
-    }
-    .product-info {
-        font-size: 18px;
-        font-weight: 600;
-    }
-    .product-price {
-        color: #28a745;
-        font-size: 18px;
-        font-weight: bold;
-        margin-left: 15px;
-    }
-    .product-stock {
-        color: #17a2b8;
-        font-size: 14px;
-        margin-left: 15px;
-    }
-    .stock-low {
-        color: #dc3545;
-        font-weight: bold;
-    }
-    .mode-lecture {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        flex-wrap: wrap;
-    }
-    .mode-edition {
-        display: none;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-    .mode-edition input {
-        padding: 8px 12px;
-        border: 2px solid #667eea;
-        border-radius: 6px;
-    }
-    .btn-editer {
-        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-        color: #333;
-    }
-    .btn-supprimer {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    }
-    .btn-valider {
-        background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-    }
-    .btn-annuler {
-        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="card">
-    <h2 class="card-title">➕ Ajouter un produit</h2>
-    <form action="/admin/produits/ajouter" method="post" class="add-form">
-        <input type="text" name="nom" placeholder="Nom du produit" required>
-        <input type="number" name="prix" step="1" placeholder="Prix (FCFA)" required>
-        <input type="number" name="stock" step="1" placeholder="Stock initial" value="0">
-        <input type="number" name="stock_min" step="1" placeholder="Stock minimum" value="5">
-        <button type="submit">➕ Ajouter</button>
+    <h2 class="card-title">➕ Ajouter un nouveau produit</h2>
+    
+    <form action="/admin/produits/ajouter" method="post" style="background: #f8f9fa; padding: 20px; border-radius: 15px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #1e3c72;">Nom du produit <span style="color: red;">*</span></label>
+                <input type="text" name="nom" placeholder="Ex: Coca-Cola 33cl" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                <small style="color: #999;">Nom complet du produit</small>
+            </div>
+            
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #1e3c72;">Prix de vente <span style="color: red;">*</span></label>
+                <input type="number" name="prix" step="1" placeholder="Ex: 500" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                <small style="color: #999;">Prix en FCFA (nombre entier)</small>
+            </div>
+            
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #1e3c72;">Stock initial</label>
+                <input type="number" name="stock" step="1" placeholder="Ex: 20" value="0" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                <small style="color: #999;">Quantité disponible au départ</small>
+            </div>
+            
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #1e3c72;">⚠️ Seuil d'alerte</label>
+                <input type="number" name="stock_min" step="1" placeholder="Ex: 5" value="5" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                <small style="color: #999;">Recevez une alerte quand le stock est ≤ ce seuil</small>
+            </div>
+        </div>
+        
+        <button type="submit" style="background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px;">➕ Ajouter le produit</button>
     </form>
 </div>
 
 <div class="card">
     <h2 class="card-title">📋 Liste des produits</h2>
-    {% for p in produits %}
-    <div class="product-item" id="produit-{{ p[0] }}">
-        <div id="lecture-{{ p[0] }}" class="mode-lecture">
-            <div>
-                <span class="product-info">{{ p[1] }}</span>
-                <span class="product-price">{{ "%.0f"|format(p[2]) if p[2] else 0 }} FCFA</span>
-                <span class="product-stock {% if p[3] <= p[4] %}stock-low{% endif %}">
-                    📦 Stock: {{ p[3] if p[3] else 0 }} / min: {{ p[4] if p[4] else 5 }}
-                </span>
+    
+    {% if produits %}
+        {% for p in produits %}
+        <div style="background: #f8f9fa; margin: 15px 0; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;" id="produit-{{ p[0] }}">
+            <div id="lecture-{{ p[0] }}" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <div>
+                    <strong style="font-size: 16px;">{{ p[1] }}</strong>
+                    <span style="color: #28a745; font-weight: bold; margin-left: 10px;">{{ "%.0f"|format(p[2]) if p[2] else 0 }} FCFA</span>
+                    <span style="color: #17a2b8; font-size: 13px; margin-left: 10px;">📦 Stock: {{ p[3] if p[3] else 0 }}</span>
+                    <span style="color: #ffc107; font-size: 13px; margin-left: 10px;">⚠️ Seuil: {{ p[4] if p[4] else 5 }}</span>
+                </div>
+                <div>
+                    <button onclick="activerEdition({{ p[0] }})" style="background: #ffc107; color: #333; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">✏️ Modifier</button>
+                    <button onclick="confirmerSuppression({{ p[0] }}, '{{ p[1] }}')" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">🗑️ Supprimer</button>
+                </div>
             </div>
-            <div>
-                <button onclick="activerEdition({{ p[0] }})" class="btn-editer">✏️ Modifier</button>
-                <button onclick="confirmerSuppression({{ p[0] }}, '{{ p[1] }}')" class="btn-supprimer">🗑️ Supprimer</button>
-            </div>
+            
+            <form id="edition-{{ p[0] }}" action="/admin/produits/modifier/{{ p[0] }}" method="post" style="display: none; gap: 10px; align-items: center; flex-wrap: wrap; width: 100%;">
+                <input type="text" name="nom" value="{{ p[1] }}" required style="flex: 2; padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                <input type="number" name="prix" value="{{ p[2] }}" step="1" required style="flex: 1; padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                <input type="number" name="stock_min" value="{{ p[4] if p[4] else 5 }}" placeholder="Stock min" style="flex: 1; padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                <button type="submit" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">✅ Valider</button>
+                <button type="button" onclick="desactiverEdition({{ p[0] }})" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">❌ Annuler</button>
+            </form>
         </div>
-        
-        <form id="edition-{{ p[0] }}" class="mode-edition" action="/admin/produits/modifier/{{ p[0] }}" method="post">
-            <input type="text" name="nom" value="{{ p[1] }}" required>
-            <input type="number" name="prix" value="{{ p[2] }}" step="1" required>
-            <input type="number" name="stock_min" value="{{ p[4] if p[4] else 5 }}" placeholder="Stock min" required>
-            <button type="submit" class="btn-valider">✅ Valider</button>
-            <button type="button" onclick="desactiverEdition({{ p[0] }})" class="btn-annuler">❌ Annuler</button>
-        </form>
-    </div>
-    {% endfor %}
+        {% endfor %}
+    {% else %}
+        <p style="text-align: center; color: #999; padding: 40px;">Aucun produit enregistré</p>
+    {% endif %}
 </div>
 
 <div class="nav-links">
     <a href="/dashboard">← Retour au Dashboard</a>
+    <a href="/admin/alertes/produits">⚠️ Configurer les seuils d'alerte</a>
 </div>
 
 <script>

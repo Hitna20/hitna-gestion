@@ -49,6 +49,7 @@
         .sidebar-header h2 {
             font-size: 20px;
             margin: 10px 0 5px;
+            color: orange;
         }
         
         .sidebar-header p {
@@ -163,7 +164,6 @@
             opacity: 0.9;
         }
         
-        /* Jamais position:fixed — il vit dans le header orange */
         .menu-toggle {
             display: none;
             position: static !important;
@@ -183,7 +183,6 @@
             margin: 0 !important;
         }
 
-        /* Overlay pour fermer le menu en cliquant à côté */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -234,6 +233,161 @@
             display: none;
         }
         
+        /* Alertes stock bas */
+        .stock-alert {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 10001;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-size: 14px;
+        }
+        .stock-alert button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        
+        /* Notification Bell */
+        .notification-bell {
+            position: relative;
+        }
+
+        .bell-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            position: relative;
+            padding: 5px 10px;
+            box-shadow: none;
+            width: auto;
+        }
+
+        .bell-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            width: 350px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1001;
+            max-height: 400px;
+            overflow: hidden;
+        }
+
+        .dropdown-header {
+            padding: 12px 15px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .mark-read-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 11px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: auto;
+            margin: 0;
+        }
+
+        .notification-list {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-item.unread {
+            background: #e8f4fd;
+            border-left: 3px solid #2a5298;
+        }
+
+        .notification-item .title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .notification-item .message {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .notification-item .date {
+            font-size: 10px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .notification-item.stock-bas .title {
+            color: #dc3545;
+        }
+
+        .dropdown-footer {
+            padding: 10px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+
+        .dropdown-footer a {
+            color: #2a5298;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+
         @media (max-width: 768px) {
             body, .app-wrapper {
                 overflow-x: hidden;
@@ -326,6 +480,13 @@
             .search-date-container {
                 flex-direction: column;
             }
+            .stats-container {
+                grid-template-columns: 1fr !important;
+            }
+            .notification-dropdown {
+                width: 300px;
+                right: -50px;
+            }
         }
         
         @media (min-width: 769px) and (max-width: 1024px) {
@@ -399,6 +560,21 @@
                 <div class="nav-item">
                     <a href="/admin/archives" class="nav-link"><span class="icon">📚</span><span>Archives</span></a>
                 </div>
+                <div class="nav-item">
+                    <a href="/admin/stats" class="nav-link">
+                        <span class="icon">📊</span><span>Statistiques</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/admin/fournisseurs" class="nav-link">
+                        <span class="icon">🏢</span><span>Fournisseurs</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="/admin/alertes/produits" class="nav-link">
+                        <span class="icon">⚠️</span><span>Alertes produits</span>
+                    </a>
+                </div>
                 <div class="nav-divider"></div>
                 {% else %}
                 <div class="nav-item">
@@ -436,6 +612,24 @@
                     <p>{% block page_subtitle %}{% endblock %}</p>
                 </div>
                 <button class="menu-toggle" id="menuToggle">☰</button>
+                <div class="notification-bell">
+                    <button id="notificationBell" class="bell-btn">
+                        🔔
+                        <span id="notificationBadge" class="badge" style="display: none;">0</span>
+                    </button>
+                    <div id="notificationDropdown" class="notification-dropdown" style="display: none;">
+                        <div class="dropdown-header">
+                            <span>🔔 Notifications</span>
+                            <button id="markAllRead" class="mark-read-btn">Tout marquer comme lu</button>
+                        </div>
+                        <div id="notificationList" class="notification-list">
+                            <div class="loading">Chargement...</div>
+                        </div>
+                        <div class="dropdown-footer">
+                            <a href="/notifications">Voir toutes les notifications</a>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="container">
                 {% with messages = get_flashed_messages() %}
@@ -449,6 +643,12 @@
             </div>
         </div>
     </div>
+    
+    <div id="stockAlert" class="stock-alert" style="display: none;">
+        <span id="alertMessage"></span>
+        <button onclick="closeAlert()">✖</button>
+    </div>
+    
     <script>
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.getElementById('sidebar');
@@ -474,12 +674,13 @@
         if (overlay) {
             overlay.addEventListener('click', closeSidebar);
         }
-        // Fermer le menu au clic sur un lien (navigation mobile)
+        
         sidebar.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function() {
                 if (window.innerWidth <= 768) closeSidebar();
             });
         });
+        
         function showNotification(message, type = 'success') {
             const existingNotifs = document.querySelectorAll('.center-notification');
             existingNotifs.forEach(notif => notif.remove());
@@ -489,6 +690,7 @@
             document.body.appendChild(notification);
             setTimeout(() => { if (notification.parentNode) notification.remove(); }, 2500);
         }
+        
         const originalAlert = window.alert;
         window.alert = function(message) {
             if (message.includes('Stock') || message.includes('erreur')) {
@@ -497,13 +699,130 @@
                 showNotification(message, 'success');
             }
         };
+        
         document.querySelectorAll('.nav-link').forEach(link => {
             if (link.href === window.location.href) { link.classList.add('active'); }
         });
+        
         const inputs = document.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
             input.addEventListener('focus', function() { this.style.fontSize = '16px'; });
         });
+
+        function checkStockBas() {
+            fetch('/api/stock_bas')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const alertDiv = document.getElementById('stockAlert');
+                        const message = document.getElementById('alertMessage');
+                        message.innerHTML = `⚠️ ${data.length} produit(s) en stock bas : ${data.map(p => p.nom).join(', ')}`;
+                        alertDiv.style.display = 'flex';
+                    }
+                });
+        }
+        
+        function closeAlert() {
+            document.getElementById('stockAlert').style.display = 'none';
+        }
+        
+        setInterval(checkStockBas, 30000);
+        checkStockBas();
+
+        // Notifications
+        let notifications = [];
+        let totalNonLus = 0;
+
+        function chargerNotifications() {
+            fetch('/api/notifications')
+                .then(response => response.json())
+                .then(data => {
+                    notifications = data.notifications;
+                    totalNonLus = data.total_non_lus;
+                    mettreAJourBadge();
+                    afficherDropdown();
+                });
+        }
+
+        function mettreAJourBadge() {
+            const badge = document.getElementById('notificationBadge');
+            if (totalNonLus > 0) {
+                badge.style.display = 'inline-block';
+                badge.textContent = totalNonLus > 99 ? '99+' : totalNonLus;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function afficherDropdown() {
+            const list = document.getElementById('notificationList');
+            if (notifications.length === 0) {
+                list.innerHTML = '<div class="loading">📭 Aucune notification</div>';
+                return;
+            }
+            
+            let html = '';
+            notifications.forEach(notif => {
+                const typeClass = notif.type === 'stock_bas' ? 'stock-bas' : '';
+                html += `
+                    <div class="notification-item ${typeClass}" onclick="ouvrirNotification(${notif.id}, '${notif.lien}')">
+                        <div class="title">${notif.title}</div>
+                        <div class="message">${notif.message}</div>
+                        <div class="date">${notif.date}</div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        function ouvrirNotification(id, lien) {
+            fetch(`/notifications/marquer_lu/${id}`, { method: 'POST' })
+                .then(() => {
+                    if (lien) {
+                        window.location.href = lien;
+                    } else {
+                        window.location.reload();
+                    }
+                });
+        }
+
+        // Événements
+        const bellBtn = document.getElementById('notificationBell');
+        const dropdown = document.getElementById('notificationDropdown');
+        const markAllRead = document.getElementById('markAllRead');
+
+        if (bellBtn) {
+            bellBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isVisible = dropdown.style.display === 'block';
+                if (isVisible) {
+                    dropdown.style.display = 'none';
+                } else {
+                    chargerNotifications();
+                    dropdown.style.display = 'block';
+                }
+            });
+        }
+
+        if (markAllRead) {
+            markAllRead.addEventListener('click', () => {
+                fetch('/notifications/marquer_tout_lu', { method: 'POST' })
+                    .then(() => {
+                        totalNonLus = 0;
+                        mettreAJourBadge();
+                        chargerNotifications();
+                    });
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!bellBtn?.contains(e.target) && !dropdown?.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        setInterval(chargerNotifications, 30000);
+        chargerNotifications();
     </script>
     {% block extra_js %}{% endblock %}
 </body>

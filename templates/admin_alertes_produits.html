@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Alertes produits - HITNA{% endblock %}
+
+{% block page_title %}⚠️ Seuils d'alerte des produits{% endblock %}
+{% block page_subtitle %}Définissez le seuil de stock pour recevoir des notifications{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">📊 Configuration des alertes stock</h2>
+    <p style="margin-bottom: 20px; color: #666;">
+        Définissez pour chaque produit le seuil de stock à partir duquel vous recevrez une notification.
+    </p>
+    
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th>Stock actuel</th>
+                    <th>Seuil par défaut</th>
+                    <th>Seuil d'alerte</th>
+                    <th>Alerte active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in produits %}
+                <form method="post" action="/admin/alertes/produits/modifier/{{ p[0] }}">
+                    <tr>
+                        <td><strong>{{ p[1] }}</strong></td>
+                        <td style="color: {% if p[2] <= p[4] %}#dc3545{% else %}#28a745{% endif %}; font-weight: bold;">
+                            {{ p[2] }} unités
+                        </td>
+                        <td>{{ p[3] }} unités</td>
+                        <td>
+                            <input type="number" name="seuil" value="{{ p[4] }}" style="width: 80px; padding: 5px;" min="0">
+                        </td>
+                        <td style="text-align: center;">
+                            <input type="checkbox" name="actif" {% if p[5] is not defined or p[5] == 1 %}checked{% endif %}>
+                        </td>
+                        <td>
+                            <button type="submit" class="btn-small" style="background: #28a745;">💾 Enregistrer</button>
+                        </td>
+                    </tr>
+                </form>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="nav-links">
+    <a href="/dashboard">← Retour au Dashboard</a>
+</div>
+
+<style>
+    .btn-small {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        transform: scale(1.2);
+    }
+</style>
+{% endblock %}

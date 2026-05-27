@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Fournisseurs - HITNA{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">🏢 Gestion des fournisseurs</h2>
+
+    <!-- Formulaire d'ajout -->
+    <form method="post" action="/admin/fournisseurs/ajouter"
+        style="background: #f8f9fa; padding: 20px; border-radius: 15px; margin-bottom: 30px;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <input type="text" name="nom" placeholder="Nom du fournisseur *" required
+                style="flex:2; min-width:150px; padding:10px; border:2px solid #e0e0e0; border-radius:8px;">
+            <input type="text" name="produits" placeholder="Produits fournis"
+                style="flex:2; min-width:150px; padding:10px; border:2px solid #e0e0e0; border-radius:8px;">
+            <input type="tel" name="telephone" placeholder="Téléphone"
+                style="flex:1; min-width:120px; padding:10px; border:2px solid #e0e0e0; border-radius:8px;">
+            <input type="email" name="email" placeholder="Email"
+                style="flex:1; min-width:130px; padding:10px; border:2px solid #e0e0e0; border-radius:8px;">
+            <input type="text" name="adresse" placeholder="Adresse"
+                style="flex:2; min-width:150px; padding:10px; border:2px solid #e0e0e0; border-radius:8px;">
+            <button type="submit" style="background:#28a745; white-space:nowrap;">➕ Ajouter</button>
+        </div>
+    </form>
+
+    <!-- Liste des fournisseurs -->
+    <h3 style="margin-bottom:15px; color:#1e3c72;">📋 Liste des fournisseurs</h3>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nom</th>
+                    <th>Produits fournis</th>
+                    <th>Téléphone</th>
+                    <th>Email</th>
+                    <th>Adresse</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in fournisseurs %}
+                <tr id="row-{{ f[0] }}">
+                    <!-- Mode lecture -->
+                    <td>{{ f[0] }}</td>
+                    <td id="nom-{{ f[0] }}">{{ f[1] }}</td>
+                    <td id="produits-{{ f[0] }}">{{ f[2] or '-' }}</td>
+                    <td id="tel-{{ f[0] }}">{{ f[3] or '-' }}</td>
+                    <td id="email-{{ f[0] }}">{{ f[4] or '-' }}</td>
+                    <td id="adr-{{ f[0] }}">{{ f[5] or '-' }}</td>
+                    <td style="white-space:nowrap;">
+                        <button onclick="activerEdition({{ f[0] }})" class="btn-small" style="background:#ffc107; color:#333;">✏️ Modifier</button>
+                        <a href="/admin/fournisseurs/supprimer/{{ f[0] }}"
+                            onclick="return confirm('Supprimer ce fournisseur ?')"
+                            style="background:#dc3545; color:white; padding:6px 12px; border-radius:6px; text-decoration:none; font-size:13px;">🗑️ Supprimer</a>
+                    </td>
+                </tr>
+                <!-- Mode édition (caché par défaut) -->
+                <tr id="edit-{{ f[0] }}" style="display:none; background:#f0f7ff;">
+                    <td colspan="7">
+                        <form method="post" action="/admin/fournisseurs/modifier/{{ f[0] }}"
+                            style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:5px 0;">
+                            <input type="text" name="nom" value="{{ f[1] }}" placeholder="Nom *" required
+                                style="flex:2; min-width:120px; padding:8px; border:2px solid #667eea; border-radius:6px;">
+                            <input type="text" name="produits" value="{{ f[2] or '' }}" placeholder="Produits fournis"
+                                style="flex:2; min-width:120px; padding:8px; border:2px solid #667eea; border-radius:6px;">
+                            <input type="tel" name="telephone" value="{{ f[3] or '' }}" placeholder="Téléphone"
+                                style="flex:1; min-width:100px; padding:8px; border:2px solid #667eea; border-radius:6px;">
+                            <input type="email" name="email" value="{{ f[4] or '' }}" placeholder="Email"
+                                style="flex:1; min-width:110px; padding:8px; border:2px solid #667eea; border-radius:6px;">
+                            <input type="text" name="adresse" value="{{ f[5] or '' }}" placeholder="Adresse"
+                                style="flex:2; min-width:120px; padding:8px; border:2px solid #667eea; border-radius:6px;">
+                            <button type="submit" style="background:#28a745; padding:8px 14px;">✅ Valider</button>
+                            <button type="button" onclick="annulerEdition({{ f[0] }})"
+                                style="background:#6c757d; padding:8px 14px;">❌ Annuler</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center; color:#999; padding:30px;">
+                        📭 Aucun fournisseur enregistré
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="nav-links">
+    <a href="/dashboard">← Retour au Dashboard</a>
+</div>
+
+<script>
+    function activerEdition(id) {
+        document.getElementById('row-' + id).style.display = 'none';
+        document.getElementById('edit-' + id).style.display = 'table-row';
+    }
+    
+    function annulerEdition(id) {
+        document.getElementById('row-' + id).style.display = 'table-row';
+        document.getElementById('edit-' + id).style.display = 'none';
+    }
+</script>
+{% endblock %}

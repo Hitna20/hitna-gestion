@@ -141,7 +141,7 @@ button:hover {
         padding: 8px;
         font-size: 12px;
     }
-}app
+}
 .logo-area {
     display: flex;
     align-items: center;
@@ -555,4 +555,141 @@ button:active {
     font-size: 64px;
     margin-bottom: 20px;
     opacity: 0.5;
+}
+
+/* Notification Bell */
+.notification-bell {
+    position: relative;
+}
+
+.bell-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    position: relative;
+    padding: 5px 10px;
+    box-shadow: none;
+    width: auto;
+}
+
+.bell-btn:hover {
+    transform: scale(1.1);
+}
+
+.badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: bold;
+    min-width: 18px;
+    text-align: center;
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: 45px;
+    right: 0;
+    width: 350px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    z-index: 1001;
+    max-height: 400px;
+    overflow: hidden;
+}
+
+.dropdown-header {
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+}
+
+.mark-read-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: auto;
+    margin: 0;
+}
+
+.notification-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: #f8f9fa;
+}
+
+.notification-item.unread {
+    background: #e8f4fd;
+    border-left: 3px solid #2a5298;
+}
+
+.notification-item .title {
+    font-weight: bold;
+    font-size: 13px;
+    color: #333;
+}
+
+.notification-item .message {
+    font-size: 12px;
+    color: #666;
+    margin-top: 3px;
+}
+
+.notification-item .date {
+    font-size: 10px;
+    color: #999;
+    margin-top: 5px;
+}
+
+.notification-item.stock-bas .title {
+    color: #dc3545;
+}
+
+.dropdown-footer {
+    padding: 10px;
+    text-align: center;
+    border-top: 1px solid #eee;
+}
+
+.dropdown-footer a {
+    color: #2a5298;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+}
+
+@media (max-width: 768px) {
+    .notification-dropdown {
+        width: 300px;
+        right: -50px;
+    }
 }

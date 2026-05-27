@@ -233,7 +233,7 @@
                             </span>
                             <form method="post" action="/admin/acteurs/modifier_role/{{ a[0] }}" style="display: flex; gap: 5px;">
                                 <input type="text" name="role_personnalise" value="{{ a[3] }}" placeholder="Rôle personnalisé" style="padding: 4px 8px; font-size: 11px; width: 120px;">
-                                <button type="submit" class="btn-small" style="background:#17a2b8;">💾</button>
+                                <button type="submit" class="btn-small" style="background:#17a2b8;">💾 Sauvegarder</button>
                             </form>
                         </div>
                     </td>
@@ -337,9 +337,10 @@
         <form id="desactiverForm" method="post">
             <select name="motif" required style="width:100%; padding:10px; margin:10px 0;">
                 <option value="">-- Motif --</option>
-                <option value="Congé annuel">🏖️ Congé annuel</option>
+                <option value="Congé">🏖️ Congé</option>
                 <option value="Congé maladie">🤒 Congé maladie</option>
                 <option value="Formation">📚 Formation</option>
+                <option value="Repos">Repos</option>
                 <option value="Autre">📝 Autre</option>
             </select>
             <input type="text" name="motif_autre" placeholder="Précisez..." style="display:none; width:100%; padding:8px;">
