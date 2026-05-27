@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash, jsonify, url_for
+from flask import Flask, render_template, request, redirect, session, flash, jsonify, url_for, send_file
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 import sqlite3
@@ -6,6 +6,12 @@ import hashlib
 import os
 import random
 import string
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 app.secret_key = 'hitna_secret'
@@ -16,7 +22,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'hitnasuperette@gmail.com'
-app.config['MAIL_PASSWORD'] = 'bpju ppvd rbiv lszk'  # À remplacer par le mot de passe d'application Gmail
+app.config['MAIL_PASSWORD'] = 'votre_mot_de_passe_application'
 app.config['MAIL_DEFAULT_SENDER'] = 'hitnasuperette@gmail.com'
 
 mail = Mail(app)
@@ -95,6 +101,15 @@ def init_db():
         client TEXT,
         employe_id INTEGER)''')
     
+    # Table pour les fournisseurs
+    c.execute('''CREATE TABLE IF NOT EXISTS fournisseurs (
+        id INTEGER PRIMARY KEY,
+        nom TEXT UNIQUE,
+        produits TEXT,
+        telephone TEXT,
+        email TEXT,
+        adresse TEXT)''')
+    
     # Table pour les tokens de réinitialisation
     c.execute('''CREATE TABLE IF NOT EXISTS reset_tokens (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,6 +118,27 @@ def init_db():
         expires_at TEXT,
         used INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id))''')
+    
+    # Table pour les notifications
+    c.execute('''CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        type TEXT,
+        title TEXT,
+        message TEXT,
+        lien TEXT,
+        est_lu INTEGER DEFAULT 0,
+        date_creation TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id))''')
+    
+    # Table pour les alertes produits
+    c.execute('''CREATE TABLE IF NOT EXISTS alertes_produits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        produit_id INTEGER,
+        seuil INTEGER DEFAULT 5,
+        actif INTEGER DEFAULT 1,
+        dernier_envoi TEXT,
+        FOREIGN KEY (produit_id) REFERENCES produits(id))''')
     
     c.execute("SELECT * FROM users")
     if not c.fetchone():
@@ -519,6 +555,12 @@ def ajouter_produit():
     conn.close()
     
     flash(f'Produit "{nom}" ajoute ({prix} FCFA, stock: {stock})')
+    
+    # Notification pour tous les admins
+    envoyer_notification_a_tous('produit', '🆕 Nouveau produit', 
+                               f'Le produit "{nom}" a été ajouté ({prix} FCFA)',
+                               '/admin/produits')
+    
     return redirect('/admin/produits')
 
 @app.route('/admin/produits/modifier/<int:id>', methods=['POST'])
@@ -558,7 +600,7 @@ def supprimer_produit(id):
     conn.close()
     return redirect('/admin/produits')
 
-# ---------- Admin : Entrees de stock (avec vérification permissions) ----------
+# ---------- Admin : Entrees de stock ----------
 @app.route('/admin/entrees')
 def entrees_list():
     if session.get('role') != 'admin':
@@ -619,6 +661,10 @@ def ajouter_entree():
     conn.close()
     
     flash(f'Entree ajoutee : +{quantite} unites')
+    
+    # Vérifier les alertes stock après ajout
+    verifier_alertes_stock()
+    
     return redirect('/admin/entrees')
 
 # ---------- Admin : Ventes ----------
@@ -656,6 +702,9 @@ def admin_ventes():
         conn.commit()
         
         flash(f'✅ Vente enregistree par Administrateur ! {quantite} {nom} vendu(s) pour {total} FCFA')
+        
+        # Vérifier les alertes stock
+        verifier_alertes_stock()
     
     c.execute('''
         SELECT s.id, p.nom, s.quantite, s.total, s.date_sortie, 
@@ -785,6 +834,438 @@ def verifier_mdp_admin():
     else:
         return jsonify({'success': False, 'message': 'Mot de passe incorrect'})
 
+# ---------- API pour alertes stock bas ----------
+@app.route('/api/stock_bas')
+def api_stock_bas():
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("SELECT nom, stock, stock_min FROM produits WHERE stock <= stock_min")
+    stock_bas = [{'nom': row[0], 'stock': row[1], 'stock_min': row[2]} for row in c.fetchall()]
+    conn.close()
+    return jsonify(stock_bas)
+
+# ---------- Notifications ----------
+def creer_notification(user_id, type_notif, titre, message, lien=None):
+    """Crée une notification pour un utilisateur"""
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute('''INSERT INTO notifications (user_id, type, title, message, lien, date_creation)
+                 VALUES (?,?,?,?,?,?)''',
+              (user_id, type_notif, titre, message, lien, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    conn.commit()
+    conn.close()
+
+def envoyer_notification_a_tous(type_notif, titre, message, lien=None):
+    """Envoie une notification à tous les utilisateurs actifs"""
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM users WHERE actif = 1")
+    users = c.fetchall()
+    for user in users:
+        creer_notification(user[0], type_notif, titre, message, lien)
+
+def verifier_alertes_stock():
+    """Vérifie les stocks et crée des notifications si besoin"""
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    
+    # Récupérer les produits en stock bas
+    c.execute('''SELECT p.id, p.nom, p.stock, COALESCE(a.seuil, p.stock_min, 5) as seuil
+                 FROM produits p
+                 LEFT JOIN alertes_produits a ON p.id = a.produit_id AND a.actif = 1
+                 WHERE p.stock <= COALESCE(a.seuil, p.stock_min, 5)''')
+    produits_stock_bas = c.fetchall()
+    
+    # Récupérer tous les admins
+    c.execute("SELECT id FROM users WHERE role = 'admin' AND actif = 1")
+    admins = c.fetchall()
+    
+    for produit in produits_stock_bas:
+        for admin in admins:
+            # Vérifier si une notification a déjà été envoyée récemment
+            c.execute('''SELECT COUNT(*) FROM notifications 
+                         WHERE user_id = ? AND type = 'stock_bas' 
+                         AND message LIKE ? 
+                         AND date_creation > datetime('now', '-1 day')''',
+                      (admin[0], f'%{produit[1]}%'))
+            if c.fetchone()[0] == 0:
+                creer_notification(admin[0], 'stock_bas', '⚠️ Stock bas', 
+                                 f'Le produit "{produit[1]}" n\'a plus que {produit[2]} unités en stock (seuil: {produit[3]})',
+                                 '/admin/produits')
+    
+    conn.commit()
+    conn.close()
+
+@app.route('/api/notifications')
+def api_notifications():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Non autorisé'}), 401
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    
+    c.execute('''SELECT id, type, title, message, lien, date_creation
+                 FROM notifications 
+                 WHERE user_id = ? AND est_lu = 0
+                 ORDER BY date_creation DESC
+                 LIMIT 20''', (session['user_id'],))
+    non_lues = c.fetchall()
+    
+    c.execute("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND est_lu = 0", (session['user_id'],))
+    total_non_lus = c.fetchone()[0]
+    
+    conn.close()
+    
+    notifications = []
+    for n in non_lues:
+        notifications.append({
+            'id': n[0],
+            'type': n[1],
+            'title': n[2],
+            'message': n[3],
+            'lien': n[4],
+            'date': n[5]
+        })
+    
+    return jsonify({'notifications': notifications, 'total_non_lus': total_non_lus})
+
+@app.route('/notifications/marquer_lu/<int:id>', methods=['POST'])
+def marquer_notification_lue(id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Non autorisé'}), 401
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("UPDATE notifications SET est_lu = 1 WHERE id = ? AND user_id = ?", (id, session['user_id']))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/notifications/marquer_tout_lu', methods=['POST'])
+def marquer_tout_lu():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Non autorisé'}), 401
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("UPDATE notifications SET est_lu = 1 WHERE user_id = ?", (session['user_id'],))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/notifications')
+def page_notifications():
+    if 'user_id' not in session:
+        return redirect('/login')
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    
+    c.execute('''SELECT id, type, title, message, lien, date_creation, est_lu
+                 FROM notifications 
+                 WHERE user_id = ?
+                 ORDER BY date_creation DESC
+                 LIMIT 100''', (session['user_id'],))
+    notifications = c.fetchall()
+    
+    c.execute("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND est_lu = 0", (session['user_id'],))
+    total_non_lus = c.fetchone()[0]
+    
+    conn.close()
+    
+    return render_template('notifications.html', notifications=notifications, total_non_lus=total_non_lus)
+
+# ---------- Admin : Alertes produits ----------
+@app.route('/admin/alertes/produits')
+def admin_alertes_produits():
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    
+    c.execute('''SELECT p.id, p.nom, p.stock, p.stock_min, 
+                        COALESCE(a.seuil, p.stock_min, 5) as seuil_alerte,
+                        COALESCE(a.actif, 1) as actif
+                 FROM produits p
+                 LEFT JOIN alertes_produits a ON p.id = a.produit_id
+                 ORDER BY p.nom''')
+    produits = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('admin_alertes_produits.html', produits=produits)
+
+@app.route('/admin/alertes/produits/modifier/<int:id>', methods=['POST'])
+def modifier_alerte_produit(id):
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    seuil = int(request.form['seuil'])
+    actif = 1 if request.form.get('actif') == 'on' else 0
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    
+    c.execute("SELECT id FROM alertes_produits WHERE produit_id = ?", (id,))
+    existe = c.fetchone()
+    
+    if existe:
+        c.execute("UPDATE alertes_produits SET seuil = ?, actif = ? WHERE produit_id = ?", (seuil, actif, id))
+    else:
+        c.execute("INSERT INTO alertes_produits (produit_id, seuil, actif) VALUES (?,?,?)", (id, seuil, actif))
+    
+    conn.commit()
+    conn.close()
+    
+    flash(f'✅ Seuil d\'alerte mis à jour pour le produit')
+    return redirect('/admin/alertes/produits')
+
+# ---------- Admin : Statistiques et graphiques ----------
+@app.route('/admin/stats')
+def admin_stats():
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    
+    try:
+        # Ventes par jour (7 derniers jours)
+        c.execute('''
+            SELECT date(date_sortie), COALESCE(SUM(total), 0), COUNT(*) 
+            FROM sorties 
+            WHERE date(date_sortie) >= date('now', '-7 days')
+            GROUP BY date(date_sortie)
+            ORDER BY date(date_sortie)
+        ''')
+        ventes_jour = c.fetchall()
+        
+        # Ventes par mois (6 derniers mois)
+        c.execute('''
+            SELECT strftime('%Y-%m', date_sortie), COALESCE(SUM(total), 0), COUNT(*) 
+            FROM sorties 
+            WHERE date_sortie >= date('now', '-6 months')
+            GROUP BY strftime('%Y-%m', date_sortie)
+            ORDER BY strftime('%Y-%m', date_sortie)
+        ''')
+        ventes_mois = c.fetchall()
+        
+        # Top produits
+        c.execute('''
+            SELECT p.nom, COALESCE(SUM(s.quantite), 0) as total_vendu
+            FROM produits p
+            LEFT JOIN sorties s ON p.id = s.produit_id
+            GROUP BY p.id
+            ORDER BY total_vendu DESC
+            LIMIT 10
+        ''')
+        top_produits = c.fetchall()
+        
+        # Marge bénéficiaire totale
+        c.execute('''
+            SELECT 
+                COALESCE((SELECT SUM(total) FROM sorties), 0) as total_ventes,
+                COALESCE((SELECT SUM(total) FROM entrees), 0) as total_achats
+        ''')
+        marge_totale = c.fetchone()
+        
+        # Marge par produit
+        c.execute('''
+            SELECT 
+                p.nom, 
+                COALESCE(SUM(s.total), 0) as ventes,
+                COALESCE(SUM(e.total), 0) as achats,
+                COALESCE(SUM(s.total), 0) - COALESCE(SUM(e.total), 0) as marge
+            FROM produits p
+            LEFT JOIN sorties s ON p.id = s.produit_id
+            LEFT JOIN entrees e ON p.id = e.produit_id
+            GROUP BY p.id
+            HAVING marge != 0 OR ventes != 0 OR achats != 0
+            ORDER BY marge DESC
+            LIMIT 10
+        ''')
+        marge_produits = c.fetchall()
+        
+    except Exception as e:
+        conn.close()
+        flash(f'Erreur lors du chargement des statistiques: {str(e)}')
+        return redirect('/dashboard')
+    
+    conn.close()
+    
+    return render_template('admin_stats.html',
+                         ventes_jour=ventes_jour,
+                         ventes_mois=ventes_mois,
+                         top_produits=top_produits,
+                         marge_totale=marge_totale,
+                         marge_produits=marge_produits)
+
+# ---------- Admin : Gestion des fournisseurs ----------
+@app.route('/admin/fournisseurs')
+def admin_fournisseurs():
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM fournisseurs ORDER BY nom")
+    fournisseurs = c.fetchall()
+    conn.close()
+    
+    return render_template('admin_fournisseurs.html', fournisseurs=fournisseurs)
+
+@app.route('/admin/fournisseurs/ajouter', methods=['POST'])
+def ajouter_fournisseur():
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    nom = request.form['nom']
+    produits = request.form.get('produits', '')
+    telephone = request.form.get('telephone', '')
+    email = request.form.get('email', '')
+    adresse = request.form.get('adresse', '')
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO fournisseurs (nom, produits, telephone, email, adresse) VALUES (?,?,?,?,?)",
+                  (nom, produits, telephone, email, adresse))
+        conn.commit()
+        flash(f'✅ Fournisseur "{nom}" ajouté')
+    except sqlite3.IntegrityError:
+        flash('❌ Ce fournisseur existe déjà')
+    conn.close()
+    return redirect('/admin/fournisseurs')
+
+@app.route('/admin/fournisseurs/modifier/<int:id>', methods=['POST'])
+def modifier_fournisseur(id):
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    nom = request.form['nom']
+    produits = request.form.get('produits', '')
+    telephone = request.form.get('telephone', '')
+    email = request.form.get('email', '')
+    adresse = request.form.get('adresse', '')
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("UPDATE fournisseurs SET nom=?, produits=?, telephone=?, email=?, adresse=? WHERE id=?", 
+              (nom, produits, telephone, email, adresse, id))
+    conn.commit()
+    conn.close()
+    
+    flash(f'✅ Fournisseur "{nom}" modifié')
+    return redirect('/admin/fournisseurs')
+
+@app.route('/admin/fournisseurs/supprimer/<int:id>')
+def supprimer_fournisseur(id):
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("SELECT nom FROM fournisseurs WHERE id=?", (id,))
+    fournisseur = c.fetchone()
+    
+    if fournisseur:
+        c.execute("DELETE FROM fournisseurs WHERE id=?", (id,))
+        conn.commit()
+        flash(f'🗑️ Fournisseur "{fournisseur[0]}" supprimé')
+    
+    conn.close()
+    return redirect('/admin/fournisseurs')
+
+# ---------- Export PDF ----------
+@app.route('/export/pdf')
+def export_pdf():
+    if session.get('role') != 'admin':
+        return redirect('/login')
+    
+    type_export = request.args.get('type', 'ventes_jour')
+    
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, height - 50, "HITNA - Rapport de gestion")
+    p.setFont("Helvetica", 10)
+    p.drawString(50, height - 70, f"Généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, height - 95, f"Rapport: {type_export.replace('_', ' ').upper()}")
+    
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    y = height - 120
+    
+    if type_export == 'ventes_jour':
+        c.execute('''SELECT date(date_sortie), COALESCE(SUM(total), 0), COUNT(*) 
+                     FROM sorties 
+                     GROUP BY date(date_sortie) 
+                     ORDER BY date(date_sortie) DESC 
+                     LIMIT 30''')
+        data = c.fetchall()
+        
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(50, y, "Date")
+        p.drawString(150, y, "Montant (FCFA)")
+        p.drawString(280, y, "Nombre de ventes")
+        y -= 20
+        
+        for row in data:
+            p.setFont("Helvetica", 10)
+            p.drawString(50, y, row[0])
+            p.drawString(150, y, f"{row[1]:,.0f}")
+            p.drawString(280, y, str(row[2]))
+            y -= 20
+            if y < 50:
+                p.showPage()
+                y = height - 50
+                p.setFont("Helvetica-Bold", 10)
+                p.drawString(50, y, "Date")
+                p.drawString(150, y, "Montant (FCFA)")
+                p.drawString(280, y, "Nombre de ventes")
+                y -= 20
+    
+    elif type_export == 'top_produits':
+        c.execute('''
+            SELECT p.nom, COALESCE(SUM(s.quantite), 0) as total_vendu
+            FROM sorties s
+            JOIN produits p ON s.produit_id = p.id
+            GROUP BY p.id
+            ORDER BY total_vendu DESC
+            LIMIT 20
+        ''')
+        data = c.fetchall()
+        
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(50, y, "Produit")
+        p.drawString(250, y, "Quantité vendue")
+        y -= 20
+        
+        for row in data:
+            p.setFont("Helvetica", 10)
+            p.drawString(50, y, row[0][:30])
+            p.drawString(250, y, str(row[1]))
+            y -= 20
+            if y < 50:
+                p.showPage()
+                y = height - 50
+                p.setFont("Helvetica-Bold", 10)
+                p.drawString(50, y, "Produit")
+                p.drawString(250, y, "Quantité vendue")
+                y -= 20
+    
+    conn.close()
+    p.save()
+    
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"rapport_{type_export}_{datetime.now().strftime('%Y%m%d')}.pdf", mimetype='application/pdf')
+
 # ---------- Admin : Dashboard ----------
 @app.route('/dashboard')
 def dashboard():
@@ -792,6 +1273,7 @@ def dashboard():
         return redirect('/login')
     
     archiver_si_necessaire()
+    verifier_alertes_stock()
     
     conn = sqlite3.connect('hitna.db')
     c = conn.cursor()
@@ -804,6 +1286,9 @@ def dashboard():
     
     c.execute("SELECT SUM(stock) FROM produits")
     stock_total = c.fetchone()[0] or 0
+    
+    c.execute("SELECT COUNT(*) FROM produits WHERE stock <= stock_min")
+    nb_stock_bas = c.fetchone()[0]
     
     c.execute('''
         SELECT s.id, p.nom, s.quantite, s.total, s.date_sortie, 
@@ -850,6 +1335,7 @@ def dashboard():
                          total_jour=total_jour,
                          nb_produits=nb_produits,
                          stock_total=stock_total,
+                         nb_stock_bas=nb_stock_bas,
                          historique=historique,
                          stock_bas=stock_bas,
                          top_produits=top_produits,
@@ -944,7 +1430,6 @@ def modifier_role_acteur(id):
     
     conn = sqlite3.connect('hitna.db')
     c = conn.cursor()
-    
     c.execute("UPDATE users SET role_personnalise = ? WHERE id=?", (role_personnalise, id))
     conn.commit()
     conn.close()
@@ -1156,6 +1641,86 @@ def archives():
                          total_ca_archive=total_ca_archive,
                          total_entrees_archive=total_entrees_archive,
                          total_achats_archive=total_achats_archive)
+
+
+
+                         # ---------- API de synchronisation ----------
+@app.route('/api/ping', methods=['GET'])
+def api_ping():
+    return jsonify({'status': 'ok', 'server': 'HITNA Cloud'})
+
+@app.route('/api/sync/produits', methods=['POST'])
+def api_sync_produits():
+    data = request.json
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute('''INSERT OR REPLACE INTO produits (id, nom, prix, stock, stock_min)
+                 VALUES (?,?,?,?,?)''', 
+              (data.get('id'), data.get('nom'), data.get('prix'), 
+               data.get('stock'), data.get('stock_min')))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/sync/sorties', methods=['POST'])
+def api_sync_sorties():
+    data = request.json
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute('''INSERT OR REPLACE INTO sorties (id, produit_id, quantite, prix_unitaire, total, date_sortie, client, employe_id)
+                 VALUES (?,?,?,?,?,?,?,?)''',
+              (data.get('id'), data.get('produit_id'), data.get('quantite'),
+               data.get('prix_unitaire'), data.get('total'), data.get('date_sortie'),
+               data.get('client'), data.get('employe_id')))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/sync/entrees', methods=['POST'])
+def api_sync_entrees():
+    data = request.json
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute('''INSERT OR REPLACE INTO entrees (id, produit_id, quantite, prix_unitaire, total, date_entree, fournisseur, employe_id)
+                 VALUES (?,?,?,?,?,?,?,?)''',
+              (data.get('id'), data.get('produit_id'), data.get('quantite'),
+               data.get('prix_unitaire'), data.get('total'), data.get('date_entree'),
+               data.get('fournisseur'), data.get('employe_id')))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/get/produits', methods=['GET'])
+def api_get_produits():
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("SELECT id, nom, prix, stock, stock_min FROM produits")
+    produits = [{'id': row[0], 'nom': row[1], 'prix': row[2], 'stock': row[3], 'stock_min': row[4]} 
+                for row in c.fetchall()]
+    conn.close()
+    return jsonify(produits)
+
+@app.route('/api/get/sorties', methods=['GET'])
+def api_get_sorties():
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM sorties ORDER BY date_sortie DESC LIMIT 1000")
+    sorties = [{'id': row[0], 'produit_id': row[1], 'quantite': row[2], 'prix_unitaire': row[3],
+                'total': row[4], 'date_sortie': row[5], 'client': row[6], 'employe_id': row[7]} 
+               for row in c.fetchall()]
+    conn.close()
+    return jsonify(sorties)
+
+@app.route('/api/get/entrees', methods=['GET'])
+def api_get_entrees():
+    conn = sqlite3.connect('hitna.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM entrees ORDER BY date_entree DESC LIMIT 1000")
+    entrees = [{'id': row[0], 'produit_id': row[1], 'quantite': row[2], 'prix_unitaire': row[3],
+                'total': row[4], 'date_entree': row[5], 'fournisseur': row[6], 'employe_id': row[7]} 
+               for row in c.fetchall()]
+    conn.close()
+    return jsonify(entrees)
 
 @app.route('/admin/archives/jour/<jour>')
 def archive_jour(jour):
