@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/logo.jpg') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.jpg') }}">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e3c72">
     <style>
         /* Layout avec sidebar */
         .app-wrapper {
@@ -823,6 +827,11 @@
 
         setInterval(chargerNotifications, 30000);
         chargerNotifications();
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(reg => console.log('Service Worker enregistré', reg))
+                .catch(err => console.log('Erreur Service Worker', err));
+        }
     </script>
     {% block extra_js %}{% endblock %}
 </body>
