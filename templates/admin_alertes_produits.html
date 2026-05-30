@@ -6,6 +6,45 @@
 {% block page_subtitle %}Définissez le seuil de stock pour recevoir des notifications{% endblock %}
 
 {% block content %}
+
+
+<style>
+    .btn-small {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        transform: scale(1.2);
+    }
+    
+    @media (max-width: 768px) {
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            min-width: 550px;
+        }
+        
+        th, td {
+            padding: 8px 5px;
+            font-size: 11px;
+        }
+        
+        input[type="number"] {
+            width: 60px;
+        }
+        
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 10px;
+        }
+    }
+</style>
+
 <div class="card">
     <h2 class="card-title">📊 Configuration des alertes stock</h2>
     <p style="margin-bottom: 20px; color: #666;">

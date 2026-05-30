@@ -391,6 +391,99 @@
             padding: 20px;
             color: #999;
         }
+        /* Styles pour mobile - CORRECTION */
+@media (max-width: 768px) {
+    /* Menu hamburger */
+    .menu-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        background: #1e3c72;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 1100;
+        margin-right: 10px;
+    }
+    
+    /* Cloche de notification - correction */
+    .notification-bell {
+        position: relative;
+        margin-left: auto;
+    }
+    
+    .bell-btn {
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+        transform: translateX(-100%);
+        width: 80%;
+        max-width: 280px;
+        position: fixed;
+        z-index: 2000;
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    /* Overlay pour fermer le menu */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1999;
+        display: none;
+    }
+    
+    .sidebar-overlay.visible {
+        display: block;
+    }
+    
+    /* Header responsive */
+    .content-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        padding: 10px 15px;
+    }
+    
+    .header-text {
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .header-text h1 {
+        font-size: 18px;
+    }
+    
+    .header-text p {
+        font-size: 11px;
+    }
+    
+    /* Menu toggle et cloche dans le header */
+    .menu-toggle,
+    .notification-bell {
+        flex-shrink: 0;
+    }
+}
 
         @media (max-width: 768px) {
             body, .app-wrapper {
@@ -531,6 +624,7 @@
     <div class="app-wrapper">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
         <div class="sidebar" id="sidebar">
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <div class="sidebar-header">
                 <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo Hitna" onerror="this.style.display='none'">
                 <h2 style="color: orange;">HITNA</h2>
@@ -832,6 +926,43 @@
                 .then(reg => console.log('Service Worker enregistré', reg))
                 .catch(err => console.log('Erreur Service Worker', err));
         }
+
+
+
+        // Menu hamburger mobile
+const menuToggle = document.getElementById('menuToggle');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+
+if (menuToggle) {
+    menuToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        sidebar.classList.toggle('open');
+        if (overlay) overlay.classList.toggle('visible');
+        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+    });
+}
+
+if (overlay) {
+    overlay.addEventListener('click', function() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        document.body.style.overflow = '';
+    });
+}
+
+// Fermer le menu au clic sur un lien
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+    });
+});
+
     </script>
     {% block extra_js %}{% endblock %}
 </body>

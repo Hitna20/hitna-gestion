@@ -241,6 +241,54 @@
         font-size: 13px;
         color: #666;
     }
+
+
+    /* Styles responsive pour entrées de stock */
+@media (max-width: 768px) {
+    .search-select-input {
+        font-size: 14px;
+    }
+    
+    .add-form {
+        flex-direction: column;
+    }
+    
+    .add-form input, .add-form button {
+        width: 100%;
+    }
+    
+    .table-entrees th, 
+    .table-entrees td {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+    
+    .day-separator {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .day-total {
+        font-size: 11px;
+    }
+    
+    .stats-entrees {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-entree .value {
+        font-size: 22px;
+    }
+    
+    .entrees-group {
+        overflow-x: auto;
+    }
+    
+    .heure-cell {
+        font-size: 10px;
+    }
+}
 </style>
 {% endblock %}
 
