@@ -130,69 +130,120 @@
         gap: 5px;
         flex-wrap: wrap;
     }
-    .table-container {
-        overflow-x: auto;
+    /* ── Desktop : table normale ── */
+    .table-container { overflow-x: auto; }
+    .table { min-width: 700px; }
+
+    /* ── Cartes mobile (cachées par défaut) ── */
+    .acteur-cards { display: none; }
+
+    .acteur-card {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid #e0e0e0;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .table {
-        min-width: 620px;
+    .acteur-card.is-vous { border-left: 4px solid #2a5298; background: #f0f6ff; }
+    .acteur-card.is-inactif { background: #fffbea; border-left: 4px solid #ffc107; }
+
+    .acteur-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 6px;
     }
+    .acteur-card-header .nom-id {
+        font-weight: bold;
+        font-size: 15px;
+        color: #1e3c72;
+    }
+    .acteur-card-header .vous-badge {
+        font-size: 10px;
+        background: #2a5298;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 6px;
+    }
+
+    .acteur-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 7px 0;
+        border-bottom: 1px solid #f0f0f0;
+        gap: 10px;
+    }
+    .acteur-row:last-child { border-bottom: none; }
+    .acteur-row .label {
+        font-size: 11px;
+        color: #888;
+        min-width: 90px;
+        padding-top: 2px;
+    }
+    .acteur-row .value {
+        flex: 1;
+        font-size: 13px;
+        text-align: right;
+    }
+
+    /* Formulaires inline dans les cartes */
+    .card-form-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    .card-form-row input[type="text"] {
+        flex: 1;
+        min-width: 0;
+        max-width: 140px;
+        padding: 6px 8px;
+        border: 1.5px solid #ddd;
+        border-radius: 7px;
+        font-size: 12px;
+    }
+    .card-form-row input[type="text"]:focus {
+        outline: none;
+        border-color: #2a5298;
+    }
+
+    .acteur-card-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .acteur-card-actions .btn-small,
+    .acteur-card-actions a.btn-small {
+        flex: 1;
+        text-align: center;
+        padding: 8px 6px;
+        font-size: 12px;
+        border-radius: 8px;
+        min-width: 100px;
+    }
+
+    /* ── Switch mobile/desktop ── */
     @media (max-width: 768px) {
-        .table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        /* Table compacte sur mobile */
-        table {
-            min-width: 600px;
-            font-size: 11px;
-        }
-        
-        th, td {
-            padding: 6px 4px;
-            font-size: 10px;
-        }
-        
-        .role-badge {
-            font-size: 9px;
-            padding: 2px 5px;
-        }
-        
-        .btn-small {
-            padding: 3px 6px;
-            font-size: 9px;
-            white-space: nowrap;
-        }
-        
-        .action-buttons {
-            flex-direction: column;
-            gap: 3px;
-        }
-        
-        .permission-badge {
-            font-size: 8px;
-            padding: 1px 4px;
-            display: block;
-            margin: 1px 0;
-        }
-        
-        .status-badge {
-            font-size: 9px;
-            padding: 2px 5px;
-        }
-        
-        .modal-content {
-            width: 95%;
-            padding: 20px;
-        }
-        
-        /* Formulaire d'ajout responsive */
+        .table-container { display: none; }
+        .acteur-cards  { display: block; }
+
+        /* Formulaire d'ajout en colonne */
         .form-add-acteur > div {
             flex-direction: column !important;
         }
         .form-add-acteur > div > div {
             width: 100% !important;
+            min-width: unset !important;
         }
+
+        .modal-content { width: 95%; padding: 20px; }
     }
 
 </style>
@@ -329,6 +380,93 @@
             </tbody>
         </table>
     </div>
+
+    <!-- ══ VERSION MOBILE : cartes ══ -->
+    <div class="acteur-cards">
+        {% for a in acteurs %}
+        <div class="acteur-card {% if a[0] == session.user_id %}is-vous{% endif %} {% if a[5] == 0 %}is-inactif{% endif %}">
+
+            <!-- En-tête de la carte -->
+            <div class="acteur-card-header">
+                <div>
+                    <span class="nom-id">{{ a[1] }}</span>
+                    {% if a[0] == session.user_id %}<span class="vous-badge">Vous</span>{% endif %}
+                </div>
+                <span class="status-badge {% if a[5] == 1 %}status-active{% else %}status-inactive{% endif %}">
+                    {% if a[5] == 1 %}✅ Actif{% else %}⭕ Désactivé{% endif %}
+                </span>
+            </div>
+
+            <!-- Rôle -->
+            <div class="acteur-row">
+                <span class="label">Rôle</span>
+                <div class="value">
+                    <span class="role-badge role-badge-{{ a[2] }}">
+                        {% if a[3] %}🏷️ {{ a[3] }}{% elif a[2] == 'admin' %}👑 Administrateur{% else %}👤 Employé{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Modifier le nom -->
+            <div class="acteur-row">
+                <span class="label">Modifier nom</span>
+                <div class="value">
+                    <form method="post" action="/admin/acteurs/modifier/{{ a[0] }}" class="card-form-row">
+                        <input type="text" name="nom" value="{{ a[1] }}">
+                        <input type="hidden" name="role" value="{{ a[2] }}">
+                        <button type="submit" class="btn-small" style="background:#ffc107; color:#333;">✏️ OK</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modifier rôle affiché -->
+            <div class="acteur-row">
+                <span class="label">Rôle affiché</span>
+                <div class="value">
+                    <form method="post" action="/admin/acteurs/modifier_role/{{ a[0] }}" class="card-form-row">
+                        <input type="text" name="role_personnalise" value="{{ a[3] }}" placeholder="Rôle perso">
+                        <button type="submit" class="btn-small" style="background:#17a2b8; color:white;">💾 OK</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Permissions -->
+            <div class="acteur-row">
+                <span class="label">Permissions</span>
+                <div class="value" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end;">
+                    {% set perms = a[7].split(',') if a[7] else ['vente'] %}
+                    {% if 'vente' in perms %}<span class="permission-badge perm-vente">🛒 Vente</span>{% endif %}
+                    {% if 'entrees' in perms %}<span class="permission-badge perm-entrees">📥 Entrées</span>{% endif %}
+                    {% if a[2] == 'admin' %}<span class="permission-badge perm-all">👑 Admin</span>{% endif %}
+                </div>
+            </div>
+
+            {% if a[6] %}
+            <div class="acteur-row">
+                <span class="label">Motif</span>
+                <span class="value" style="font-size:12px; color:#666;">📝 {{ a[6] }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Boutons d'action -->
+            <div class="acteur-card-actions">
+                {% if a[2] != 'admin' and a[0] != session.user_id %}
+                <button onclick="openPermModal({{ a[0] }}, '{{ a[1] }}', '{{ a[7] }}')" class="btn-small" style="background:#17a2b8; color:white;">🔧 Permissions</button>
+                {% endif %}
+                {% if a[0] != session.user_id %}
+                    {% if a[5] == 1 %}
+                    <button onclick="openDesactiverModal({{ a[0] }}, '{{ a[1] }}')" class="btn-small" style="background:#ffc107; color:#333;">🚫 Désactiver</button>
+                    {% else %}
+                    <a href="/admin/acteurs/reactiver/{{ a[0] }}" class="btn-small" style="background:#28a745; color:white;">✅ Réactiver</a>
+                    {% endif %}
+                    <a href="/admin/acteurs/supprimer/{{ a[0] }}" onclick="return confirm('Supprimer définitivement ?')" class="btn-small" style="background:#dc3545; color:white;">🗑️ Supprimer</a>
+                {% endif %}
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
     {% else %}
     <p style="text-align: center; color: #999;">Aucun acteur enregistré</p>
     {% endif %}
