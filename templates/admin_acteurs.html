@@ -134,78 +134,66 @@
         overflow-x: auto;
     }
     .table {
-        min-width: 800px;
+        min-width: 620px;
     }
     @media (max-width: 768px) {
         .table-container {
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
+        
+        /* Table compacte sur mobile */
+        table {
+            min-width: 600px;
+            font-size: 11px;
+        }
+        
+        th, td {
+            padding: 6px 4px;
+            font-size: 10px;
+        }
+        
+        .role-badge {
+            font-size: 9px;
+            padding: 2px 5px;
+        }
+        
+        .btn-small {
+            padding: 3px 6px;
+            font-size: 9px;
+            white-space: nowrap;
+        }
+        
         .action-buttons {
             flex-direction: column;
+            gap: 3px;
         }
-        .btn-small {
-            text-align: center;
-            margin: 2px 0;
+        
+        .permission-badge {
+            font-size: 8px;
+            padding: 1px 4px;
+            display: block;
+            margin: 1px 0;
+        }
+        
+        .status-badge {
+            font-size: 9px;
+            padding: 2px 5px;
+        }
+        
+        .modal-content {
+            width: 95%;
+            padding: 20px;
+        }
+        
+        /* Formulaire d'ajout responsive */
+        .form-add-acteur > div {
+            flex-direction: column !important;
+        }
+        .form-add-acteur > div > div {
+            width: 100% !important;
         }
     }
-
-
-    @media (max-width: 768px) {
-    .table-container {
-        overflow-x: auto;
-    }
-    
-    table {
-        min-width: 700px;
-    }
-    
-    th, td {
-        padding: 8px 5px;
-        font-size: 11px;
-    }
-    
-    .role-badge {
-        font-size: 9px;
-        padding: 2px 6px;
-    }
-    
-    .btn-small {
-        padding: 4px 8px;
-        font-size: 10px;
-    }
-    
-    .action-buttons {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    
-    .permission-badge {
-        font-size: 8px;
-        padding: 2px 5px;
-    }
-    
-    .status-badge {
-        font-size: 9px;
-        padding: 3px 6px;
-    }
-    
-    .modal-content {
-        width: 95%;
-        padding: 20px;
-    }
-    
-    .modal-content h3 {
-        font-size: 18px;
-    }
-    
-    .checkbox-group label {
-        font-size: 14px;
-    }
-    
-    .password-input {
-        font-size: 14px;
-    }
-}
 
 </style>
 {% endblock %}
@@ -217,7 +205,7 @@
 <div class="card">
     <h2 class="card-title">➕ Ajouter un nouvel acteur</h2>
     
-    <form method="post" action="/admin/acteurs/ajouter" style="background: #f8f9fa; padding: 20px; border-radius: 15px;">
+    <form method="post" action="/admin/acteurs/ajouter" class="form-add-acteur" style="background: #f8f9fa; padding: 20px; border-radius: 15px;">
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
             <div style="flex: 2; min-width: 150px;">
                 <label style="display: block; font-size: 12px; margin-bottom: 5px; color: #666;">Nom / Surnom</label>

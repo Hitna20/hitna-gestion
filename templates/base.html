@@ -511,13 +511,28 @@
                 padding: 0 !important;
                 position: static !important;
                 flex-shrink: 0;
+                z-index: 1100;
             }
             .content-header {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                flex-wrap: nowrap !important;
                 padding: 10px 15px;
                 margin-bottom: 20px;
+                gap: 8px;
+            }
+            .header-text {
+                flex: 1;
+                min-width: 0; /* permet la troncature du texte */
+                overflow: hidden;
             }
             .content-header h1 {
-                font-size: 18px;
+                font-size: 16px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
             }
             .container {
                 padding: 0 15px 20px 15px;
@@ -581,8 +596,10 @@
                 grid-template-columns: 1fr !important;
             }
             .notification-dropdown {
-                width: 300px;
-                right: -50px;
+                width: calc(100vw - 30px);
+                right: 0;
+                left: auto;
+                max-width: 340px;
             }
         }
         
@@ -624,7 +641,6 @@
     <div class="app-wrapper">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <div class="sidebar-header">
                 <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo Hitna" onerror="this.style.display='none'">
                 <h2 style="color: orange;">HITNA</h2>
@@ -765,6 +781,7 @@
 
         if (menuToggle) {
             menuToggle.addEventListener('click', function(e) {
+                e.preventDefault();
                 e.stopPropagation();
                 sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
             });
@@ -926,42 +943,6 @@
                 .then(reg => console.log('Service Worker enregistré', reg))
                 .catch(err => console.log('Erreur Service Worker', err));
         }
-
-
-
-        // Menu hamburger mobile
-const menuToggle = document.getElementById('menuToggle');
-const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('sidebarOverlay');
-
-if (menuToggle) {
-    menuToggle.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        sidebar.classList.toggle('open');
-        if (overlay) overlay.classList.toggle('visible');
-        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
-    });
-}
-
-if (overlay) {
-    overlay.addEventListener('click', function() {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('visible');
-        document.body.style.overflow = '';
-    });
-}
-
-// Fermer le menu au clic sur un lien
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', function() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.remove('open');
-            if (overlay) overlay.classList.remove('visible');
-            document.body.style.overflow = '';
-        }
-    });
-});
 
     </script>
     {% block extra_js %}{% endblock %}
